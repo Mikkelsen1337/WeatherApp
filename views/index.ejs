@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Weather App</title>
+</head>
+<body>
+
+<h1>Vejr oversigt</h1>
+
+<form id="weatherForm">
+    <input type="text" id="cityInput" placeholder="Indtast by">
+    <button type="submit">Søg</button>
+</form>
+
+<div id="result"></div>
+
+<script>
+    document.getElementById("weatherForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const city = document.getElementById("cityInput").value;
+
+        const res = await fetch(`/api/weather?city=${city}`);
+        const data = await res.json();
+
+        document.getElementById("result").innerHTML = `
+            <p><strong>Temperature:</strong> ${data.temperature}</p>
+            <p><strong>Wind:</strong> ${data.wind}</p>
+            <p><strong>Description:</strong> ${data.description}</p>
+        `;
+    });
+</script>
+
+
+</body>
+</html>
