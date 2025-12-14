@@ -6,11 +6,24 @@ const app = express();
 app.set("view engine", "ejs");
 app.set("views", __dirname + "/views");
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static('public'));
+const session = require('express-session');
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'd4f2l10001011337EZPZ',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 1000 * 60 * 60 * 24 }
+}));
 
-// Routes
+app.use('/auth', require('./src/routes/authRoutes'));
+app.use('/api/favorites', require('./src/routes/favoriteRoutes'));
+
+app.get('/login')
+
 app.use("/api/weather", require("./src/routes/weatherRoutes"));
 
-// Simple root for manual test
+
 app.get("/", (req, res) => {
     res.render("index");
 });

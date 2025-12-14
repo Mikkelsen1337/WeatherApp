@@ -3,33 +3,203 @@
 <head>
     <meta charset="UTF-8">
     <title>Weather App</title>
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 
-<h1>Vejr oversigt</h1>
+<div class="page-center">
+    <div class="menu-card">
 
-<form id="weatherForm">
-    <input type="text" id="cityInput" placeholder="Indtast by">
-    <button type="submit">Søg</button>
-</form>
+        <div class="icon">☀️</div>
+        <h2>Weather App</h2>
 
-<div id="result"></div>
+        <form id="weatherForm">
+            <input type="text" id="cityInput" placeholder="Indtast by">
+            <button type="submit">Søg vejr</button>
+        </form>
+
+        <div id="result"></div>
+        <button id="favBtn" class="hidden">⭐ Gem som favorit</button>
+        <hr>
+
+
+        <button onclick="showLogin()">Login</button>
+        <button onclick="showRegister()">Register</button>
+
+
+        <form id="loginForm" class="hidden">
+            <h3>Login</h3>
+            <input id="loginEmail" placeholder="Email">
+            <input id="loginPassword" type="password" placeholder="Password">
+            <button type="submit">Login</button>
+        </form>
+
+
+        <form id="registerForm" class="hidden">
+            <h3>Register</h3>
+            <input id="regEmail" placeholder="Email">
+            <input id="regPassword" type="password" placeholder="Password">
+            <button type="submit">Register</button>
+        </form>
+        <h3>Mine favoritter</h3>
+        <ul id="favoritesList"></ul>
+    </div>
+</div>
+
 
 <script>
-    document.getElementById("weatherForm").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const city = document.getElementById("cityInput").value;
+
+    const weatherMap = {
+        "clear sky": "Klart vejr",
+        "few clouds": "Let skyet",
+        "scattered clouds": "Spredte skyer",
+        "broken clouds": "Skyet",
+        "overcast clouds": "Overskyet",
+        "rain": "Regn",
+        "light rain": "Let regn",
+        "snow": "Sne"
+    };
+
+    let currentCity = null;
+
+    async function searchWeather(city) {
+        currentCity = city;
+        cityInput.value = city;
 
         const res = await fetch(`/api/weather?city=${city}`);
         const data = await res.json();
 
-        document.getElementById("result").innerHTML = `
-            <p><strong>Temperature:</strong> ${data.temperature}</p>
-            <p><strong>Wind:</strong> ${data.wind}</p>
-            <p><strong>Description:</strong> ${data.description}</p>
-        `;
+        if (!res.ok) {
+            result.innerHTML = `<p class="error">${data.msg}</p>`;
+            document.getElementById("favBtn").classList.add("hidden");
+            return;
+        }
+
+        const temp = data.temperature.toFixed(1);
+        const wind = data.wind.toFixed(1);
+        const description = weatherMap[data.description] || data.description;
+
+        result.innerHTML = `
+        <p><strong>Temperatur:</strong> ${temp} °C</p>
+        <p><strong>Vindhastighed:</strong> ${wind} m/s</p>
+        <p><strong>Vejret:</strong> ${description}</p>
+    `;
+
+        document.getElementById("favBtn").classList.remove("hidden");
+    }
+
+    document.getElementById("weatherForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        searchWeather(cityInput.value);
     });
+
+    favBtn.addEventListener("click", async () => {
+        const res = await fetch('/api/favorites', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ city: currentCity })
+        });
+
+        const data = await res.json();
+        alert(data.msg);
+        loadFavorites();
+    });
+
+    async function loadFavorites() {
+        const res = await fetch('/api/favorites');
+        if (!res.ok) return;
+
+        const data = await res.json();
+        favoritesList.innerHTML = "";
+
+        data.favorites.forEach(f => {
+            const li = document.createElement("li");
+            li.innerHTML = `
+    <div class="fav-item">
+        <span class="fav-city" onclick="searchWeather('${f.city}')">
+            ${f.city}
+        </span>
+        <button class="delete-btn" onclick="deleteFavorite('${f._id}')">❌</button>
+    </div>
+`;
+            favoritesList.appendChild(li);
+        });
+    }
+
+    async function deleteFavorite(id) {
+        const res = await fetch(`/api/favorites/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        alert(data.msg);
+        loadFavorites();
+    }
+
+
 </script>
+
+<script>
+    function showLogin() {
+        const login = document.getElementById('loginForm');
+        const register = document.getElementById('registerForm');
+
+        if (login.classList.contains('hidden')) {
+            login.classList.remove('hidden');
+            register.classList.add('hidden');
+        } else {
+            login.classList.add('hidden');
+        }
+    }
+
+    function showRegister() {
+        const login = document.getElementById('loginForm');
+        const register = document.getElementById('registerForm');
+
+        if (register.classList.contains('hidden')) {
+            register.classList.remove('hidden');
+            login.classList.add('hidden');
+        } else {
+            register.classList.add('hidden');
+        }
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async e => {
+        e.preventDefault();
+        const res = await fetch('/auth/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                email: loginEmail.value,
+                password: loginPassword.value
+            })
+        });
+        const data = await res.json();
+        alert(data.msg);
+
+        if (res.ok) {
+            loadFavorites();
+            document.getElementById('loginForm').classList.add('hidden');
+        }
+    });
+
+    document.getElementById('registerForm').addEventListener('submit', async e => {
+        e.preventDefault();
+        const res = await fetch('/auth/register', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                email: regEmail.value,
+                password: regPassword.value
+            })
+        });
+        const data = await res.json();
+        alert(data.msg);
+
+        if (res.ok) {
+            document.getElementById('registerForm').classList.add('hidden');
+        }
+    });
+    loadFavorites();
+</script>
+
 
 
 </body>
